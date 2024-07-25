@@ -10,20 +10,19 @@ from flask import Flask, request, jsonify
 class SimpleNN(nn.Module):
     def __init__(self):
         super().__init__()
-        self.layers = nn.Sequential(
-            nn.Flatten(),
-            nn.Linear(28 * 28, 128),
-            nn.ReLU(),
-            nn.Linear(128, 10)
-        )
+        self.fc1 = nn.Linear(28 * 28, 128)
+        self.fc2 = nn.Linear(128, 10)
 
     def forward(self, x):
-        return self.layers(x)
+        x = x.view(-1, 28 * 28)
+        x = torch.relu(self.fc1(x))
+        x = self.fc2(x)
+        return x
 
 # Load model
 device = torch.device("cpu")  # Use CPU to reduce complexity
 model = SimpleNN().to(device)
-model.load_state_dict(torch.load("mnist_model.pth", map_location=device))
+model.load_state_dict(torch.load("mnist_model.pth", map_location=device, weights_only=True))
 model.eval()
 
 # Simplified transform
@@ -41,7 +40,12 @@ def predict():
     if not data or 'image' not in data:
         return jsonify({"error": "No image data provided"}), 400
     
-    image_data = base64.b64decode(data['image'].split(',')[1])
+    image_b64 = data['image']
+    if ',' in image_b64:
+        # Handle data URL format
+        image_b64 = image_b64.split(',')[1]
+    
+    image_data = base64.b64decode(image_b64)
     image = Image.open(io.BytesIO(image_data)).convert('L')
     tensor = transform(image).unsqueeze(0).to(device)
 
@@ -53,4 +57,3 @@ def predict():
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5328)
-
