@@ -1,5 +1,7 @@
 # Neural Network Digit Recognizer
 
+![MNIST mind mapper](./public/mnist-mind-mapper.png)
+
 A web application that uses a neural network to recognize hand-drawn digits between 1 and 10.
 
 ## Overview
