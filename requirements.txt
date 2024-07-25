@@ -1,2 +1,7 @@
-numpy==1.24.3
-Flask==3.0.3
+torch
+torchvision
+matplotlib
+fastapi
+python-multipart
+uvicorn
+pillow
