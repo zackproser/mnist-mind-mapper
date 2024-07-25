@@ -1,7 +1,4 @@
 torch
 torchvision
-matplotlib
-fastapi
-python-multipart
-uvicorn
+flask
 pillow
