@@ -1,4 +1,5 @@
-torch
-torchvision
 flask
-pillow
+Pillow
+numpy
+onnxruntime
+torchvision

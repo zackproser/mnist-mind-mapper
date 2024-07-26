@@ -1,29 +1,25 @@
-import torch
-import torch.nn as nn
+import onnxruntime as ort
 from torchvision import transforms
+import numpy as np
 
-class SimpleNN(nn.Module):
-    def __init__(self):
-        super(SimpleNN, self).__init__()
-        self.flatten = nn.Flatten()
-        self.fc1 = nn.Linear(28 * 28, 128)
-        self.relu = nn.ReLU()
-        self.fc2 = nn.Linear(128, 10)
+# Create an ONNX Runtime inference session
+ort_session = ort.InferenceSession("mnist_model.onnx")
 
-    def forward(self, x):
-        x = self.flatten(x)
-        x = self.fc1(x)
-        x = self.relu(x)
-        x = self.fc2(x)
-        return x
-
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-model = SimpleNN().to(device)
-model.load_state_dict(torch.load("mnist_model.pth", map_location=device))
-model.eval()
-
+# Define image transformation
 transform = transforms.Compose([
     transforms.Resize((28, 28)),
     transforms.ToTensor(),
     transforms.Normalize((0.1307,), (0.3081,))
 ])
+
+# Function to run inference using ONNX Runtime
+def run_inference(image):
+    # Apply transformations
+    tensor = transform(image).unsqueeze(0).numpy()
+    
+    # Run inference
+    ort_inputs = {ort_session.get_inputs()[0].name: tensor}
+    ort_outputs = ort_session.run(None, ort_inputs)
+    
+    # Get prediction
+    return np.argmax(ort_outputs[0])
