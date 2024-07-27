@@ -3,7 +3,8 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { debounce } from 'lodash'
 
-const INFERENCE_API_ENDPOINT = process.env.NEXT_PUBLIC_INFERENCE_API_ENDPOINT || '/api/predict'
+const isDevelopment = process.env.NODE_ENV === 'development'
+const INFERENCE_API_ENDPOINT = isDevelopment ? '/api/predict' : process.env.NEXT_PUBLIC_INFERENCE_API_ENDPOINT
 
 export default function Home() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -66,15 +67,31 @@ export default function Home() {
     const canvas = canvasRef.current
     if (canvas) {
       const imageData = canvas.toDataURL('image/png')
-      const response = await fetch(INFERENCE_API_ENDPOINT, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ image: imageData }),
-      })
-      const data = await response.json()
-      setPrediction(data.prediction)
+      
+      if (!INFERENCE_API_ENDPOINT) {
+        console.error('Inference API endpoint is not defined')
+        return
+      }
+
+      try {
+        const response = await fetch(INFERENCE_API_ENDPOINT, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ image: imageData }),
+        })
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`)
+        }
+        
+        const data = await response.json()
+        setPrediction(data.prediction)
+      } catch (error) {
+        console.error('Error getting prediction:', error)
+        setPrediction(null)
+      }
     }
   }, 150)
 
