@@ -68,6 +68,9 @@ export default function Home() {
     if (canvas) {
       const imageData = canvas.toDataURL('image/png')
       
+      // Log the base64 encoded image data
+      console.log('Base64 encoded image data:', imageData)
+      
       if (!INFERENCE_API_ENDPOINT) {
         console.error('Inference API endpoint is not defined')
         return
