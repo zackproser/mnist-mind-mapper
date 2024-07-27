@@ -74,7 +74,7 @@ export default function Home() {
       const data = await response.json()
       setPrediction(data.predicted)
     }
-  }, 250)
+  }, 150)
 
   useEffect(() => {
     getPrediction()
