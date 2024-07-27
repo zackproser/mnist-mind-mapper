@@ -9,6 +9,7 @@ const INFERENCE_API_ENDPOINT = isDevelopment ? '/api/predict' : process.env.NEXT
 export default function Home() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [isDrawing, setIsDrawing] = useState(false)
+  const [lastPoint, setLastPoint] = useState<{ x: number; y: number } | null>(null)
   const [prediction, setPrediction] = useState<number | null>(null)
   const [showExplanation, setShowExplanation] = useState(false)
 
@@ -17,12 +18,11 @@ export default function Home() {
     if (canvas) {
       const ctx = canvas.getContext('2d')
       if (ctx) {
-        ctx.strokeStyle = '#000000' // Black color for maximum contrast
-        ctx.lineWidth = 10
+        ctx.lineWidth = 25
         ctx.lineCap = 'round'
         ctx.lineJoin = 'round'
-        // Set initial background to white
-        ctx.fillStyle = 'white'
+        // Set initial background to black
+        ctx.fillStyle = 'black'
         ctx.fillRect(0, 0, canvas.width, canvas.height)
       }
     }
@@ -30,30 +30,54 @@ export default function Home() {
 
   const startDrawing = (e: React.MouseEvent<HTMLCanvasElement>) => {
     setIsDrawing(true)
-    draw(e)
+    const { x, y } = getCoordinates(e)
+    setLastPoint({ x, y })
   }
 
   const stopDrawing = () => {
     setIsDrawing(false)
+    setLastPoint(null)
+  }
+
+  const getCoordinates = (e: React.MouseEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current
     if (canvas) {
-      const ctx = canvas.getContext('2d')
-      ctx?.beginPath()
+      const rect = canvas.getBoundingClientRect()
+      return {
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top
+      }
     }
+    return { x: 0, y: 0 }
   }
 
   const draw = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (!isDrawing) return
+    if (!isDrawing || !lastPoint) return
     const canvas = canvasRef.current
     const ctx = canvas?.getContext('2d')
     if (ctx && canvas) {
-      const rect = canvas.getBoundingClientRect()
-      const x = e.clientX - rect.left
-      const y = e.clientY - rect.top
+      const { x, y } = getCoordinates(e)
+      
+      const dx = x - lastPoint.x
+      const dy = y - lastPoint.y
+      const distance = Math.sqrt(dx * dx + dy * dy)
+      
+      // Adjust density based on drawing speed
+      const density = Math.min(1, 0.5 + 30 / distance)
+      
+      // Create a radial gradient for grayscale effect (inverted)
+      const gradient = ctx.createRadialGradient(x, y, 0, x, y, ctx.lineWidth / 2)
+      gradient.addColorStop(0, `rgba(255, 255, 255, ${density})`)  // Dense center (white)
+      gradient.addColorStop(1, 'rgba(255, 255, 255, 0)')    // Transparent edges
+      
+      ctx.strokeStyle = gradient
+      
+      ctx.beginPath()
+      ctx.moveTo(lastPoint.x, lastPoint.y)
       ctx.lineTo(x, y)
       ctx.stroke()
-      ctx.beginPath()
-      ctx.moveTo(x, y)
+      
+      setLastPoint({ x, y })
     }
   }
 
@@ -61,7 +85,7 @@ export default function Home() {
     const canvas = canvasRef.current
     const ctx = canvas?.getContext('2d')
     if (ctx && canvas) {
-      ctx.fillStyle = 'white'
+      ctx.fillStyle = 'black'
       ctx.fillRect(0, 0, canvas.width, canvas.height)
     }
     setPrediction(null)
@@ -118,8 +142,8 @@ export default function Home() {
           ref={canvasRef}
           width={280}
           height={280}
-          className="relative border-4 border-white bg-white"
-          style={{ backgroundColor: 'white' }} // Ensure white background
+          className="relative border-4 border-white bg-black"
+          style={{ backgroundColor: 'black' }} // Ensure black background
           onMouseDown={startDrawing}
           onMouseUp={stopDrawing}
           onMouseOut={stopDrawing}
