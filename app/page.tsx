@@ -3,6 +3,8 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { debounce } from 'lodash'
 
+const INFERENCE_API_ENDPOINT = process.env.NEXT_PUBLIC_INFERENCE_API_ENDPOINT || '/api/predict'
+
 export default function Home() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [isDrawing, setIsDrawing] = useState(false)
@@ -64,7 +66,7 @@ export default function Home() {
     const canvas = canvasRef.current
     if (canvas) {
       const imageData = canvas.toDataURL('image/png')
-      const response = await fetch('/api/predict', {
+      const response = await fetch(INFERENCE_API_ENDPOINT, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -72,7 +74,7 @@ export default function Home() {
         body: JSON.stringify({ image: imageData }),
       })
       const data = await response.json()
-      setPrediction(data.predicted)
+      setPrediction(data.prediction)
     }
   }, 150)
 

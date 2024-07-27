@@ -19,7 +19,7 @@ def predict():
     # Make prediction using ONNX Runtime
     predicted = run_inference(image)
     
-    return jsonify({"predicted": int(predicted)})
+    return jsonify({"prediction": int(predicted)})
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5328)
