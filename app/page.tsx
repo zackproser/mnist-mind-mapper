@@ -112,9 +112,9 @@ export default function Home() {
         return
       }
 
-      // Invert the image colors only in production
+      // Make the numbers 30% lighter only in production
       if (!isDevelopment) {
-        console.log('Inverting image colors for production...')
+        console.log('Making numbers 30% lighter for production...')
         const tempCanvas = document.createElement('canvas')
         const tempCtx = tempCanvas.getContext('2d')
         const img = new Image()
@@ -127,9 +127,10 @@ export default function Home() {
           const imageDataObj = tempCtx?.getImageData(0, 0, tempCanvas.width, tempCanvas.height)
           if (imageDataObj) {
             for (let i = 0; i < imageDataObj.data.length; i += 4) {
-              imageDataObj.data[i] = 255 - imageDataObj.data[i]       // Invert Red
-              imageDataObj.data[i + 1] = 255 - imageDataObj.data[i + 1] // Invert Green
-              imageDataObj.data[i + 2] = 255 - imageDataObj.data[i + 2] // Invert Blue
+              // Make each color channel 30% lighter
+              imageDataObj.data[i] = Math.min(255, imageDataObj.data[i] + 77)     // Red
+              imageDataObj.data[i + 1] = Math.min(255, imageDataObj.data[i + 1] + 77) // Green
+              imageDataObj.data[i + 2] = Math.min(255, imageDataObj.data[i + 2] + 77) // Blue
             }
             tempCtx?.putImageData(imageDataObj, 0, 0)
             imageData = tempCanvas.toDataURL('image/png')
