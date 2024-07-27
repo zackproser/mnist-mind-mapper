@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useEffect, useRef, useState, TouchEvent } from 'react'
-import { debounce } from 'lodash'
+import { debounce, invert } from 'lodash'
 
 const isDevelopment = process.env.NODE_ENV === 'development'
 const INFERENCE_API_ENDPOINT = isDevelopment ? '/api/predict' : process.env.NEXT_PUBLIC_INFERENCE_API_ENDPOINT
@@ -103,7 +103,7 @@ export default function Home() {
   const sendFinalPrediction = async () => {
     const canvas = canvasRef.current
     if (canvas) {
-      const imageData = canvas.toDataURL('image/png')
+      let imageData = canvas.toDataURL('image/png')
       
       console.log('Sending final prediction...')
       
@@ -112,24 +112,72 @@ export default function Home() {
         return
       }
 
-      try {
-        const response = await fetch(INFERENCE_API_ENDPOINT, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ image: imageData }),
-        })
+      // Invert the image colors only in production
+      if (!isDevelopment) {
+        console.log('Inverting image colors for production...')
+        const tempCanvas = document.createElement('canvas')
+        const tempCtx = tempCanvas.getContext('2d')
+        const img = new Image()
         
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`)
+        img.onload = async () => {
+          tempCanvas.width = img.width
+          tempCanvas.height = img.height
+          tempCtx?.drawImage(img, 0, 0)
+          
+          const imageDataObj = tempCtx?.getImageData(0, 0, tempCanvas.width, tempCanvas.height)
+          if (imageDataObj) {
+            for (let i = 0; i < imageDataObj.data.length; i += 4) {
+              imageDataObj.data[i] = 255 - imageDataObj.data[i]       // Invert Red
+              imageDataObj.data[i + 1] = 255 - imageDataObj.data[i + 1] // Invert Green
+              imageDataObj.data[i + 2] = 255 - imageDataObj.data[i + 2] // Invert Blue
+            }
+            tempCtx?.putImageData(imageDataObj, 0, 0)
+            imageData = tempCanvas.toDataURL('image/png')
+          }
+          
+          try {
+            const response = await fetch(INFERENCE_API_ENDPOINT, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ image: imageData }),
+            })
+            
+            if (!response.ok) {
+              throw new Error(`HTTP error! status: ${response.status}`)
+            }
+            
+            const data = await response.json()
+            setPrediction(data.prediction)
+          } catch (error) {
+            console.error('Error getting prediction:', error)
+            setPrediction(null)
+          }
         }
         
-        const data = await response.json()
-        setPrediction(data.prediction)
-      } catch (error) {
-        console.error('Error getting prediction:', error)
-        setPrediction(null)
+        img.src = imageData
+      } else {
+        // In development, send the image as is
+        try {
+          const response = await fetch(INFERENCE_API_ENDPOINT, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ image: imageData }),
+          })
+          
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`)
+          }
+          
+          const data = await response.json()
+          setPrediction(data.prediction)
+        } catch (error) {
+          console.error('Error getting prediction:', error)
+          setPrediction(null)
+        }
       }
     }
   }
