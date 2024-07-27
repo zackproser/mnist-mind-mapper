@@ -17,10 +17,13 @@ export default function Home() {
     if (canvas) {
       const ctx = canvas.getContext('2d')
       if (ctx) {
-        ctx.strokeStyle = 'white'
+        ctx.strokeStyle = '#000000' // Black color for maximum contrast
         ctx.lineWidth = 10
         ctx.lineCap = 'round'
         ctx.lineJoin = 'round'
+        // Set initial background to white
+        ctx.fillStyle = 'white'
+        ctx.fillRect(0, 0, canvas.width, canvas.height)
       }
     }
   }, [])
@@ -58,7 +61,8 @@ export default function Home() {
     const canvas = canvasRef.current
     const ctx = canvas?.getContext('2d')
     if (ctx && canvas) {
-      ctx.clearRect(0, 0, canvas.width, canvas.height)
+      ctx.fillStyle = 'white'
+      ctx.fillRect(0, 0, canvas.width, canvas.height)
     }
     setPrediction(null)
   }
@@ -114,7 +118,8 @@ export default function Home() {
           ref={canvasRef}
           width={280}
           height={280}
-          className="relative border-4 border-white bg-gray-900"
+          className="relative border-4 border-white bg-white"
+          style={{ backgroundColor: 'white' }} // Ensure white background
           onMouseDown={startDrawing}
           onMouseUp={stopDrawing}
           onMouseOut={stopDrawing}
