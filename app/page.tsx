@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useRef, useState, TouchEvent } from 'react'
 import { debounce } from 'lodash'
 
 const isDevelopment = process.env.NODE_ENV === 'development'
@@ -28,7 +28,7 @@ export default function Home() {
     }
   }, [])
 
-  const startDrawing = (e: React.MouseEvent<HTMLCanvasElement>) => {
+  const startDrawing = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
     setIsDrawing(true)
     const { x, y } = getCoordinates(e)
     setLastPoint({ x, y })
@@ -37,21 +37,30 @@ export default function Home() {
   const stopDrawing = () => {
     setIsDrawing(false)
     setLastPoint(null)
+    sendFinalPrediction()
   }
 
-  const getCoordinates = (e: React.MouseEvent<HTMLCanvasElement>) => {
+  const getCoordinates = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current
     if (canvas) {
       const rect = canvas.getBoundingClientRect()
+      let clientX, clientY
+      if ('touches' in e) {
+        clientX = e.touches[0].clientX
+        clientY = e.touches[0].clientY
+      } else {
+        clientX = e.clientX
+        clientY = e.clientY
+      }
       return {
-        x: e.clientX - rect.left,
-        y: e.clientY - rect.top
+        x: clientX - rect.left,
+        y: clientY - rect.top
       }
     }
     return { x: 0, y: 0 }
   }
 
-  const draw = (e: React.MouseEvent<HTMLCanvasElement>) => {
+  const draw = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
     if (!isDrawing || !lastPoint) return
     const canvas = canvasRef.current
     const ctx = canvas?.getContext('2d')
@@ -91,13 +100,12 @@ export default function Home() {
     setPrediction(null)
   }
 
-  const getPrediction = debounce(async () => {
+  const sendFinalPrediction = async () => {
     const canvas = canvasRef.current
     if (canvas) {
       const imageData = canvas.toDataURL('image/png')
       
-      // Log the base64 encoded image data
-      console.log('Base64 encoded image data:', imageData)
+      console.log('Sending final prediction...')
       
       if (!INFERENCE_API_ENDPOINT) {
         console.error('Inference API endpoint is not defined')
@@ -124,11 +132,7 @@ export default function Home() {
         setPrediction(null)
       }
     }
-  }, 150)
-
-  useEffect(() => {
-    getPrediction()
-  }, [isDrawing])
+  }
 
   return (
     <main className="min-h-screen flex flex-col items-center justify-center p-8 bg-black text-white font-mono">
@@ -143,11 +147,15 @@ export default function Home() {
           width={280}
           height={280}
           className="relative border-4 border-white bg-black"
-          style={{ backgroundColor: 'black' }} // Ensure black background
+          style={{ backgroundColor: 'black', touchAction: 'none' }}
           onMouseDown={startDrawing}
           onMouseUp={stopDrawing}
           onMouseOut={stopDrawing}
           onMouseMove={draw}
+          onTouchStart={startDrawing}
+          onTouchEnd={stopDrawing}
+          onTouchCancel={stopDrawing}
+          onTouchMove={draw}
         />
       </div>
       <button
