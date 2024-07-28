@@ -1,6 +1,7 @@
 import modal
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
 import onnxruntime as ort
 from PIL import Image
 from torchvision import transforms
@@ -25,13 +26,23 @@ class Model:
             transforms.ToTensor(),
             transforms.Normalize((0.5,), (0.5,))
         ])
-        self.load_model()
+        self.ort_session = None
 
+    @modal.enter()
     def load_model(self):
-        model_path = "/root/mnist_model.onnx"
-        self.ort_session = ort.InferenceSession(model_path)
+        try:
+            model_path = "/root/mnist_model.onnx"
+            self.ort_session = ort.InferenceSession(model_path)
+            print("Model loaded successfully")
+        except Exception as e:
+            print(f"Error loading model: {str(e)}")
+            raise
 
+    @modal.method()
     def predict(self, image_data: bytes):
+        if self.ort_session is None:
+            raise RuntimeError("Model not initialized. Please ensure load_model() is called.")
+        
         img = Image.open(io.BytesIO(image_data))
         img = self.transform(img).unsqueeze(0).numpy()
         ort_inputs = {self.ort_session.get_inputs()[0].name: img}
@@ -41,9 +52,19 @@ class Model:
 
 web_app = FastAPI()
 
+web_app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "https://mnist-mind-mapper.vercel.app",
+        "https://mnist-mind-mapper-git-main-zachary-s-team.vercel.app"
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 @web_app.post("/predict")
 async def predict(request: Request):
-    model = Model()
     data = await request.json()
     if 'image' not in data:
         raise HTTPException(status_code=400, detail="No image part")
@@ -57,9 +78,12 @@ async def predict(request: Request):
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Invalid image data: {str(e)}")
     
+    model = Model()
     try:
-        prediction = model.predict(image_data)
+        prediction = model.predict.remote(image_data)
         return JSONResponse(content={'prediction': prediction})
+    except RuntimeError as e:
+        raise HTTPException(status_code=500, detail=f"Model initialization error: {str(e)}")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Prediction error: {str(e)}")
 
