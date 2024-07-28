@@ -185,9 +185,22 @@ export default function Home() {
 
   return (
     <main className="min-h-screen flex flex-col items-center justify-center p-8 bg-black text-white font-mono">
-      <h1 className="text-6xl font-extrabold mb-12 text-green-500 transform -skew-x-6">DRAW A NUMBER BETWEEN 1-10</h1>
+      <h1 className="text-4xl font-extrabold mb-8 text-green-500 text-center">
+        Hi, I'm a neural net trained by{' '}
+        <a
+          href="https://zackproser.com"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-yellow-400 hover:text-red-500 transition-colors duration-300"
+        >
+          Zachary Proser
+        </a>{' '}
+        to recognize hand-drawn digits!
+      </h1>
       <div className="mb-8 text-3xl border-4 border-yellow-400 p-4 transform skew-x-3">
-        Prediction: <span className="text-yellow-400">{prediction !== null ? prediction : 'N/A'}</span>
+        {prediction !== null
+          ? `I think you drew a ${prediction}`
+          : "Draw a number, and I'll guess it!"}
       </div>
       <div className="relative">
         <div className="absolute inset-0 bg-red-500 transform translate-x-2 translate-y-2"></div>
